@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GNN Thesis Committee Recommender</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background:white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .label-optional {
+            font-weight: 400;
+            font-size: 0.9em;
+            color: #666;
+            font-style: italic;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            font-family: inherit;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: 600;
+            width: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .result-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .result-header h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .result-mode {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+
+        .professor-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .professor-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .professor-card.primary {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #f0f4ff 0%, #fef9ff 100%);
+        }
+
+        .professor-card.user-selected {
+            border-color: #28a745;
+            background: linear-gradient(135deg, #f0fff4 0%, #fef9ff 100%);
+        }
+
+        .professor-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .professor-rank {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-right: 20px;
+        }
+
+        .professor-rank.user-selected {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+
+        .professor-info h3 {
+            color: #333;
+            font-size: 1.4em;
+            margin-bottom: 5px;
+        }
+
+        .professor-role {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 1em;
+        }
+
+        .professor-role.user-selected-role {
+            color: #28a745;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .metric {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            color: #333;
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin-right: 8px;
+            margin-top: 10px;
+        }
+
+        .badge-collaborator {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .badge-similar {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .badge-boosted {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+        /* Add these to your existing styles */
+
+    .compatibility-bar {
+        margin: 20px 0;
+    }
+
+    .progress-bar-container {
+        background: #e0e0e0;
+        height: 12px;
+        border-radius: 6px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .progress-bar-fill {
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        height: 100%;
+        transition: width 0.5s ease;
+        border-radius: 6px;
+    }
+
+    .explanation-box {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 10px;
+        border-left: 4px solid #667eea;
+        margin-top: 15px;
+    }
+
+    .explanation-title {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .explanation-text {
+        color: #555;
+        line-height: 1.6;
+        font-size: 0.95em;
+    }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1> Thesis Committee Recommender</h1>
+            <p>GNN Professor Matching System</p>
+        </div>
+
+        <div class="content">
+            <form id="thesisForm">
+                <div class="form-group">
+                    <label for="thesisInput">
+                        Thesis Topic / Description
+                    </label>
+                    <textarea
+                        id="thesisInput"
+                        rows="5"
+                        placeholder="Enter your thesis topic, research questions, or a brief description of your research area..."
+                        required
+                    ></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="mentorSelect">
+                        Primary Mentor <span class="label-optional">(optional)</span>
+                    </label>
+                    <select id="mentorSelect">
+                        <option value="">-- Select if you've already chosen a mentor --</option>
+                    </select>
+                </div>
+
+{#                <div class="info-box">#}
+{#                    <p>#}
+{#                        <strong>💡 How it works:</strong><br>#}
+{#                        • <strong>No mentor selected:</strong> We'll recommend a complete committee (primary supervisor + 2 members)<br>#}
+{#                        • <strong>Mentor selected:</strong> We'll recommend 2 committee members who work well with your chosen mentor and match your thesis topic#}
+{#                    </p>#}
+{#                </div>#}
+
+                <button type="submit" id="submitBtn">
+                    Get Recommendations
+                </button>
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Analyzing your thesis and finding the best committee...</p>
+            </div>
+
+            <div class="error" id="error"></div>
+
+            <div class="results" id="results">
+                <div class="result-header">
+                    <div id="resultMode" class="result-mode"></div>
+                    <h2>Recommended Committee</h2>
+                    <p id="thesisTitle"></p>
+                </div>
+                <div id="recommendations"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+    async function loadProfessors() {
+        try {
+            const response = await fetch('/professors');
+            const data = await response.json();
+
+            const select = document.getElementById('mentorSelect');
+            data.professors.sort().forEach(prof => {
+                const option = document.createElement('option');
+                option.value = prof;
+                option.textContent = prof;
+                select.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error loading professors:', error);
+        }
+    }
+
+
+    document.getElementById('thesisForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const thesis = document.getElementById('thesisInput').value.trim();
+        const mentor = document.getElementById('mentorSelect').value.trim();
+
+        if (!thesis) {
+            showError('Please enter a thesis topic');
+            return;
+        }
+
+
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('results').style.display = 'none';
+        document.getElementById('error').style.display = 'none';
+        document.getElementById('submitBtn').disabled = true;
+
+        try {
+            const response = await fetch('/recommend_professors', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    thesis: thesis,
+                    primary_mentor: mentor || ""
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to get recommendations');
+            }
+
+            displayResults(data);
+        } catch (error) {
+            showError(error.message);
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('submitBtn').disabled = false;
+        }
+    });
+
+    function displayResults(data) {
+        const resultsDiv = document.getElementById('results');
+        const recommendationsDiv = document.getElementById('recommendations');
+        const thesisTitle = document.getElementById('thesisTitle');
+        const resultMode = document.getElementById('resultMode');
+
+
+        if (data.primary_mentor_selected) {
+            resultMode.textContent = `🤝 Committee for: ${data.selected_mentor}`;
+            resultMode.style.background = '#28a745';
+        } else {
+            resultMode.textContent = '🎯 Full Committee Recommendation';
+            resultMode.style.background = '#667eea';
+        }
+
+
+        thesisTitle.textContent = `For thesis: "${data.thesis}"`;
+
+
+        recommendationsDiv.innerHTML = '';
+
+
+        data.recommendations.forEach((rec, index) => {
+            const card = createProfessorCard(rec, index, data.primary_mentor_selected);
+            recommendationsDiv.appendChild(card);
+        });
+
+        resultsDiv.style.display = 'block';
+    }
+
+    function createProfessorCard(rec, index, hasMentorSelected) {
+        const card = document.createElement('div');
+        card.className = 'professor-card';
+
+        if (index === 0) {
+            card.classList.add('primary');
+        }
+
+
+        const rankNumber = index + 1;
+        const compatibilityScore = rec.compatibility_score || 0;
+        const explanation = rec.explanation || 'Recommended based on GNN analysis.';
+
+        card.innerHTML = `
+            <div class="professor-header">
+                <div class="professor-rank">${rankNumber}</div>
+                <div class="professor-info">
+                    <h3>${rec.professor}</h3>
+                    <div class="professor-role">${rec.role}</div>
+                </div>
+            </div>
+
+            <div class="compatibility-bar" style="margin: 20px 0;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="font-weight: 600; color: #666;">Compatibility Score</span>
+                    <span style="font-weight: 700; color: #667eea; font-size: 1.1em;">${compatibilityScore.toFixed(1)}%</span>
+                </div>
+                <div style="background: #e0e0e0; height: 12px; border-radius: 6px; overflow: hidden;">
+                    <div style="background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); height: 100%; width: ${compatibilityScore}%; transition: width 0.3s ease;"></div>
+                </div>
+            </div>
+
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #667eea;">
+                <div style="font-weight: 600; color: #333; margin-bottom: 8px;">💡 Why chosen:</div>
+                <div style="color: #555; line-height: 1.6;">${explanation}</div>
+            </div>
+        `;
+
+        return card;
+    }
+
+    function showError(message) {
+        const errorDiv = document.getElementById('error');
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+        document.getElementById('results').style.display = 'none';
+    }
+
+    loadProfessors();
+</script>
+</body>
+</html>
